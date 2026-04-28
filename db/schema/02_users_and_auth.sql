@@ -16,10 +16,14 @@ CREATE TABLE IF NOT EXISTS users (
     password_hash VARCHAR(255) NOT NULL,
     role VARCHAR(20) NOT NULL DEFAULT 'student' 
         CHECK (role IN ('admin', 'librarian', 'student')),
+    is_demo BOOLEAN NOT NULL DEFAULT FALSE,
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
+ALTER TABLE users
+ADD COLUMN IF NOT EXISTS is_demo BOOLEAN NOT NULL DEFAULT FALSE;
 
 -- Create index on email for faster login lookups
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
@@ -48,15 +52,36 @@ EXECUTE FUNCTION set_users_updated_at();
 -- =====================================================
 -- Pre-hashed password for Admin@123 using crypt()
 -- This creates a bcrypt-style hash that can be verified with crypt(password, hash)
-INSERT INTO users (full_name, email, password_hash, role, is_active)
+INSERT INTO users (full_name, email, password_hash, role, is_demo, is_active)
 VALUES (
-    'System Admin',
-    'admin@library.in',
+    'Demo Admin',
+    'demoadmin@library.in',
     crypt('Admin@123', gen_salt('bf')),
     'admin',
+    TRUE,
     TRUE
 )
-ON CONFLICT (email) DO NOTHING;
+ON CONFLICT (email) DO UPDATE
+SET full_name = EXCLUDED.full_name,
+    role = EXCLUDED.role,
+    is_demo = EXCLUDED.is_demo,
+    is_active = EXCLUDED.is_active;
+
+-- Main admin account: intended for real administration, not public demos.
+INSERT INTO users (full_name, email, password_hash, role, is_demo, is_active)
+VALUES (
+    'Main Admin',
+    'admin@library.in',
+    crypt('MainAdmin@123', gen_salt('bf')),
+    'admin',
+    FALSE,
+    TRUE
+)
+ON CONFLICT (email) DO UPDATE
+SET full_name = EXCLUDED.full_name,
+    role = EXCLUDED.role,
+    is_demo = EXCLUDED.is_demo,
+    is_active = EXCLUDED.is_active;
 
 -- =====================================================
 -- 2. FUNCTION: Register new student user & auto-create member card
@@ -250,13 +275,14 @@ RETURNS TABLE (
     user_id INT,
     full_name VARCHAR,
     role VARCHAR,
+    is_demo BOOLEAN,
     is_active BOOLEAN
 )
 LANGUAGE plpgsql
 AS $$
 BEGIN
     RETURN QUERY
-    SELECT u.user_id, u.full_name, u.role, u.is_active
+    SELECT u.user_id, u.full_name, u.role, u.is_demo, u.is_active
     FROM users u
     WHERE LOWER(u.email) = LOWER(p_email)
       AND u.password_hash = crypt(p_password_plain, u.password_hash)
@@ -274,6 +300,7 @@ SELECT
     full_name,
     email,
     role,
+    is_demo,
     is_active,
     created_at,
     updated_at

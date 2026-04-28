@@ -32,8 +32,13 @@ SELECT m.member_id,
        (SELECT COUNT(*)
         FROM loans l
         WHERE l.member_id = m.member_id) AS lifetime_loans,
-       (SELECT COALESCE(SUM(amount), 0)
+       (SELECT COALESCE(SUM(GREATEST(f.amount - COALESCE(fp.total_paid, 0), 0)), 0)
         FROM loan_fees f
+        LEFT JOIN (
+            SELECT fee_id, SUM(payment_amount) AS total_paid
+            FROM fee_payments
+            GROUP BY fee_id
+        ) fp ON fp.fee_id = f.fee_id
         WHERE f.member_id = m.member_id
           AND f.status IN ('UNPAID','PARTIAL')) AS outstanding_fees
 FROM members m;

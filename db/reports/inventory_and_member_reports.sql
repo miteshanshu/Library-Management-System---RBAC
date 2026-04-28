@@ -21,15 +21,24 @@ ORDER BY overdue_count DESC
 LIMIT 20;
 
 -- Member debt aging buckets to help front-desk triage conversations
+WITH fee_balances AS (
+    SELECT f.member_id,
+           f.assessed_date,
+           f.status,
+           GREATEST(f.amount - COALESCE(SUM(p.payment_amount), 0), 0) AS outstanding_amount
+    FROM loan_fees f
+    LEFT JOIN fee_payments p ON p.fee_id = f.fee_id
+    GROUP BY f.fee_id, f.member_id, f.assessed_date, f.status, f.amount
+)
 SELECT m.member_id,
        m.first_name,
        m.last_name,
-       SUM(f.amount) FILTER (WHERE f.status = 'UNPAID' AND f.assessed_date >= CURRENT_DATE - INTERVAL '7 days') AS due_0_7,
-       SUM(f.amount) FILTER (WHERE f.status = 'UNPAID' AND f.assessed_date BETWEEN CURRENT_DATE - INTERVAL '14 days' AND CURRENT_DATE - INTERVAL '8 days') AS due_8_14,
-       SUM(f.amount) FILTER (WHERE f.status = 'UNPAID' AND f.assessed_date < CURRENT_DATE - INTERVAL '14 days') AS due_15_plus,
-       SUM(f.amount) FILTER (WHERE f.status = 'PARTIAL') AS partial_balance
+       SUM(f.outstanding_amount) FILTER (WHERE f.status IN ('UNPAID', 'PARTIAL') AND f.assessed_date >= CURRENT_DATE - INTERVAL '7 days') AS due_0_7,
+       SUM(f.outstanding_amount) FILTER (WHERE f.status IN ('UNPAID', 'PARTIAL') AND f.assessed_date BETWEEN CURRENT_DATE - INTERVAL '14 days' AND CURRENT_DATE - INTERVAL '8 days') AS due_8_14,
+       SUM(f.outstanding_amount) FILTER (WHERE f.status IN ('UNPAID', 'PARTIAL') AND f.assessed_date < CURRENT_DATE - INTERVAL '14 days') AS due_15_plus,
+       SUM(f.outstanding_amount) FILTER (WHERE f.status = 'PARTIAL') AS partial_balance
 FROM members m
-LEFT JOIN loan_fees f ON f.member_id = m.member_id
+LEFT JOIN fee_balances f ON f.member_id = m.member_id
 GROUP BY m.member_id, m.first_name, m.last_name
 ORDER BY due_15_plus DESC NULLS LAST;
 
