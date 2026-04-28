@@ -8,7 +8,8 @@
     "dev": "nodemon src/server.js",
     "test": "jest --coverage",
     "test:e2e": "playwright test",
-    "lint": "eslint src/"
+    "lint": "eslint src/",
+    "reset-password": "node scripts/reset-user-password.js"
   },
   "keywords": [
     "library",
