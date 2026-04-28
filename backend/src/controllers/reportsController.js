@@ -7,7 +7,7 @@ const getOverdueReport = async (req, res, next) => {
     const { limit = 100, offset = 0 } = req.query;
 
     const result = await pool.query(
-      `SELECT l.*, b.title, m.card_number, m.first_name, m.last_name, m.email FROM ${env.DB_SCHEMA}.loans l JOIN ${env.DB_SCHEMA}.book_copies bc ON l.copy_id = bc.copy_id JOIN ${env.DB_SCHEMA}.books b ON bc.book_id = b.book_id JOIN ${env.DB_SCHEMA}.members m ON l.member_id = m.member_id WHERE l.status = $1 ORDER BY l.due_date ASC LIMIT $2 OFFSET $3`,
+      `SELECT l.*, b.title, m.card_number, m.first_name, m.last_name, m.email, GREATEST(CURRENT_DATE - l.due_date, 0) AS days_overdue FROM ${env.DB_SCHEMA}.loans l JOIN ${env.DB_SCHEMA}.book_copies bc ON l.copy_id = bc.copy_id JOIN ${env.DB_SCHEMA}.books b ON bc.book_id = b.book_id JOIN ${env.DB_SCHEMA}.members m ON l.member_id = m.member_id WHERE l.status = $1 ORDER BY l.due_date ASC LIMIT $2 OFFSET $3`,
       ['OVERDUE', limit, offset]
     );
 
@@ -78,7 +78,19 @@ const getMemberActivityReport = async (req, res, next) => {
 const getDebtAgingReport = async (req, res, next) => {
   try {
     const result = await pool.query(
-      `SELECT m.member_id, m.card_number, m.first_name, m.last_name, m.email, SUM(CASE WHEN lf.status = $1 THEN lf.amount ELSE 0 END) as unpaid_fees, SUM(CASE WHEN lf.status = $2 THEN lf.amount ELSE 0 END) as partial_fees FROM ${env.DB_SCHEMA}.members m LEFT JOIN ${env.DB_SCHEMA}.loan_fees lf ON m.member_id = lf.member_id GROUP BY m.member_id HAVING SUM(CASE WHEN lf.status = $1 THEN lf.amount ELSE 0 END) > 0 OR SUM(CASE WHEN lf.status = $2 THEN lf.amount ELSE 0 END) > 0 ORDER BY unpaid_fees DESC`,
+      `SELECT m.member_id, m.card_number, m.first_name, m.last_name, m.email,
+              COALESCE(SUM(CASE WHEN lf.status = $1 THEN GREATEST(lf.amount - COALESCE(fp.total_paid, 0), 0) ELSE 0 END), 0) AS unpaid_fees,
+              COALESCE(SUM(CASE WHEN lf.status = $2 THEN GREATEST(lf.amount - COALESCE(fp.total_paid, 0), 0) ELSE 0 END), 0) AS partial_fees
+       FROM ${env.DB_SCHEMA}.members m
+       LEFT JOIN ${env.DB_SCHEMA}.loan_fees lf ON m.member_id = lf.member_id
+       LEFT JOIN (
+         SELECT fee_id, SUM(payment_amount) AS total_paid
+         FROM ${env.DB_SCHEMA}.fee_payments
+         GROUP BY fee_id
+       ) fp ON fp.fee_id = lf.fee_id
+       GROUP BY m.member_id
+       HAVING COALESCE(SUM(CASE WHEN lf.status IN ($1, $2) THEN GREATEST(lf.amount - COALESCE(fp.total_paid, 0), 0) ELSE 0 END), 0) > 0
+       ORDER BY unpaid_fees DESC, partial_fees DESC`,
       ['UNPAID', 'PARTIAL']
     );
 
@@ -91,7 +103,7 @@ const getDebtAgingReport = async (req, res, next) => {
 const getTurnaroundMetrics = async (req, res, next) => {
   try {
     const result = await pool.query(
-      `SELECT EXTRACT(YEAR FROM l.checkout_date) as year, EXTRACT(MONTH FROM l.checkout_date) as month, AVG(EXTRACT(DAY FROM (l.returned_date - l.checkout_date))) as avg_loan_days, COUNT(l.loan_id) as total_loans FROM ${env.DB_SCHEMA}.loans l WHERE l.returned_date IS NOT NULL GROUP BY year, month ORDER BY year DESC, month DESC`
+      `SELECT EXTRACT(YEAR FROM l.checkout_date) as year, EXTRACT(MONTH FROM l.checkout_date) as month, AVG(l.returned_date - l.checkout_date) as avg_loan_days, COUNT(l.loan_id) as total_loans FROM ${env.DB_SCHEMA}.loans l WHERE l.returned_date IS NOT NULL GROUP BY year, month ORDER BY year DESC, month DESC`
     );
 
     sendSuccess(res, result.rows, 'Turnaround metrics retrieved', 200);
@@ -107,7 +119,17 @@ const getDashboardSummary = async (req, res, next) => {
       pool.query(`SELECT COUNT(*) as count FROM ${env.DB_SCHEMA}.books`),
       pool.query(`SELECT COUNT(*) as count FROM ${env.DB_SCHEMA}.book_copies WHERE status = $1`, ['AVAILABLE']),
       pool.query(`SELECT COUNT(*) as count FROM ${env.DB_SCHEMA}.loans WHERE status IN ($1, $2)`, ['ACTIVE', 'OVERDUE']),
-      pool.query(`SELECT SUM(amount) as total FROM ${env.DB_SCHEMA}.loan_fees WHERE status = $1`, ['UNPAID']),
+      pool.query(
+        `SELECT COALESCE(SUM(GREATEST(lf.amount - COALESCE(fp.total_paid, 0), 0)), 0) AS total
+         FROM ${env.DB_SCHEMA}.loan_fees lf
+         LEFT JOIN (
+           SELECT fee_id, SUM(payment_amount) AS total_paid
+           FROM ${env.DB_SCHEMA}.fee_payments
+           GROUP BY fee_id
+         ) fp ON fp.fee_id = lf.fee_id
+         WHERE lf.status IN ($1, $2)`,
+        ['UNPAID', 'PARTIAL']
+      ),
     ]);
 
     const dashboard = {

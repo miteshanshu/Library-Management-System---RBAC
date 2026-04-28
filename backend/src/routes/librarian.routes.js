@@ -12,13 +12,16 @@ const {
   markCopyAvailable,
   generateOverdueAlerts,
   markAlertResolved,
+  createAlert,
   viewBooks,
   viewBookCopies,
   scanBarcode,
   getBookStockStatus,
 } = require('../controllers/librarianController');
 
-router.use(authenticate, requireRole('librarian'));
+const { addBulkCopies } = require('../controllers/adminController');
+
+router.use(authenticate, requireRole('librarian', 'admin'));
 
 router.get('/students/search', searchStudent);
 
@@ -34,9 +37,14 @@ router.get('/book-copies/:copy_id', viewBookCopyStatus);
 
 router.patch('/book-copies/:copy_id/mark-available', markCopyAvailable);
 
+// Librarians can also add bulk copies
+router.post('/book-copies/bulk', addBulkCopies);
+
 router.post('/alerts/generate-overdue', generateOverdueAlerts);
 
 router.patch('/alerts/:alert_id/resolve', markAlertResolved);
+
+router.post('/alerts', createAlert);
 
 router.get('/books/stock-status', getBookStockStatus);
 
@@ -46,4 +54,11 @@ router.get('/books', viewBooks);
 
 router.post('/scan-barcode', scanBarcode);
 
+// Reservations management
+const { getAllReservations, fulfillReservation, cancelReservation } = require('../controllers/reservationsController');
+router.get('/reservations', getAllReservations);
+router.patch('/reservations/:id/fulfill', fulfillReservation);
+router.patch('/reservations/:id/cancel', cancelReservation);
+
 module.exports = router;
+

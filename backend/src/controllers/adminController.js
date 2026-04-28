@@ -183,7 +183,7 @@ const deleteBook = async (req, res, next) => {
     }
 
     const deleteResult = result.rows[0];
-    
+
     if (!deleteResult.success) {
       return next(new ValidationError(deleteResult.message));
     }
@@ -271,6 +271,18 @@ const setBookLocation = async (req, res, next) => {
     }
 
     sendSuccess(res, result.rows[0], 'Book location updated successfully', 200);
+  } catch (err) {
+    next(err);
+  }
+};
+
+const getMembershipTypes = async (req, res, next) => {
+  try {
+    const result = await pool.query(
+      `SELECT * FROM ${env.DB_SCHEMA}.membership_types ORDER BY membership_type_id`
+    );
+
+    sendSuccess(res, result.rows, 'Membership types retrieved', 200);
   } catch (err) {
     next(err);
   }
@@ -386,6 +398,47 @@ const forceCloseLoan = async (req, res, next) => {
   }
 };
 
+const getAllBookCopies = async (req, res, next) => {
+  try {
+    const { limit = 100, offset = 0, search } = req.query;
+
+    let query = `
+      SELECT 
+        bc.copy_id, 
+        bc.barcode, 
+        bc.status, 
+        bc.condition_notes, 
+        bc.acquisition_date,
+        b.book_id, 
+        b.title, 
+        b.isbn,
+        l.location_name,
+        NULL::text as created_by_name,
+        NULL::text as created_by_email
+      FROM ${env.DB_SCHEMA}.book_copies bc
+      JOIN ${env.DB_SCHEMA}.books b ON bc.book_id = b.book_id
+      LEFT JOIN ${env.DB_SCHEMA}.library_locations l ON bc.location_id = l.location_id
+    `;
+
+    const params = [];
+
+    if (search) {
+      query += ` WHERE bc.barcode ILIKE $1 OR b.title ILIKE $1 OR b.isbn ILIKE $1`;
+      params.push(`%${search}%`);
+    }
+
+    query += ` ORDER BY bc.created_at DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
+    params.push(limit);
+    params.push(offset);
+
+    const result = await pool.query(query, params);
+
+    sendSuccess(res, result.rows, 'Book copies retrieved', 200);
+  } catch (err) {
+    next(err);
+  }
+};
+
 const deleteBookCopy = async (req, res, next) => {
   try {
     const { copy_id } = req.params;
@@ -400,13 +453,102 @@ const deleteBookCopy = async (req, res, next) => {
     }
 
     const deleteResult = result.rows[0];
-    
+
     if (!deleteResult.success) {
       return next(new ValidationError(deleteResult.message));
     }
 
     sendSuccess(res, { copy_id, message: deleteResult.message }, 'Book copy deleted successfully', 200);
   } catch (err) {
+    next(err);
+  }
+};
+
+// Add multiple copies of a book at once with auto-generated barcodes
+const addBulkCopies = async (req, res, next) => {
+  try {
+    const { book_id, quantity, location_id } = req.body;
+    const created_by = req.user.user_id;
+
+    if (!book_id || !quantity) {
+      return next(new ValidationError('Book ID and quantity are required'));
+    }
+
+    const qty = parseInt(quantity, 10);
+    if (qty < 1 || qty > 100) {
+      return next(new ValidationError('Quantity must be between 1 and 100'));
+    }
+
+    // Get book ISBN for barcode generation
+    const bookResult = await pool.query(
+      `SELECT isbn FROM ${env.DB_SCHEMA}.books WHERE book_id = $1`,
+      [book_id]
+    );
+
+    if (bookResult.rows.length === 0) {
+      return next(new NotFoundError('Book not found'));
+    }
+
+    const isbn = bookResult.rows[0].isbn;
+    const createdCopies = [];
+    const timestamp = Date.now();
+
+    for (let i = 0; i < qty; i++) {
+      // Generate unique barcode: BC-{book_id}-{timestamp last 6 digits}-{sequence}
+      const shortTimestamp = String(timestamp).slice(-6);
+      const barcode = `BC${book_id}-${shortTimestamp}-${String(i + 1).padStart(2, '0')}`;
+
+      const copyResult = await pool.query(
+        `INSERT INTO ${env.DB_SCHEMA}.book_copies 
+         (book_id, barcode, location_id, status, acquisition_date) 
+         VALUES ($1, $2, $3, 'AVAILABLE', CURRENT_DATE) 
+         RETURNING copy_id, barcode, status`,
+        [book_id, barcode, location_id || null]
+      );
+
+      if (copyResult.rows.length > 0) {
+        createdCopies.push(copyResult.rows[0]);
+      }
+    }
+
+    sendSuccess(res, {
+      book_id,
+      isbn,
+      copies_created: createdCopies.length,
+      copies: createdCopies
+    }, `${createdCopies.length} copies added successfully`, 201);
+  } catch (err) {
+    if (err.message.includes('unique constraint') || err.message.includes('duplicate')) {
+      return next(new ValidationError('Barcode generation conflict. Please try again.'));
+    }
+    next(err);
+  }
+};
+
+const bulkDeleteBookCopies = async (req, res, next) => {
+  try {
+    const { copy_ids } = req.body;
+
+    if (!copy_ids || !Array.isArray(copy_ids) || copy_ids.length === 0) {
+      return next(new ValidationError('Array of copy IDs is required'));
+    }
+
+    // Using a transaction usually safer, but loop works for MVP logic reusing existing function logic or direct DELETE
+    // Direct DELETE is much more efficient
+    const result = await pool.query(
+      `DELETE FROM ${env.DB_SCHEMA}.book_copies WHERE copy_id = ANY($1) RETURNING copy_id`,
+      [copy_ids]
+    );
+
+    sendSuccess(res, {
+      deleted_count: result.rowCount,
+      deleted_ids: result.rows.map(r => r.copy_id)
+    }, `Successfully deleted ${result.rowCount} book copies`, 200);
+
+  } catch (err) {
+    if (err.message.includes('foreign key constraint')) {
+      return next(new ValidationError('Cannot delete some copies because they have active loans or history.'));
+    }
     next(err);
   }
 };
@@ -423,8 +565,12 @@ module.exports = {
   updateCopyStatus,
   setBookLocation,
   deleteBookCopy,
+  getMembershipTypes,
   manageMembershipTypes,
   overrideMember,
   waiveFee,
   forceCloseLoan,
+  getAllBookCopies,
+  addBulkCopies,
+  bulkDeleteBookCopies,
 };
