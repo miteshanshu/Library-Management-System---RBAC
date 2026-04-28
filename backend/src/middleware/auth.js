@@ -1,6 +1,6 @@
 const jwt = require('jsonwebtoken');
 const env = require('../config/env');
-const { AuthenticationError } = require('../utils/error');
+const { AuthenticationError, AuthorizationError } = require('../utils/error');
 
 const authenticate = (req, res, next) => {
   const token = req.headers.authorization?.split(' ')[1];
@@ -18,6 +18,22 @@ const authenticate = (req, res, next) => {
   }
 };
 
+const requireRole = (roles) => {
+  return (req, res, next) => {
+    if (!req.user) {
+      return next(new AuthenticationError('User not authenticated'));
+    }
+
+    const allowedRoles = Array.isArray(roles) ? roles : [roles];
+
+    if (!allowedRoles.includes(req.user.role)) {
+      return next(new AuthorizationError('Access denied: Insufficient permissions'));
+    }
+
+    next();
+  };
+};
+
 const generateToken = (user) => {
   return jwt.sign(
     {
@@ -25,6 +41,7 @@ const generateToken = (user) => {
       email: user.email,
       role: user.role,
       full_name: user.full_name,
+      is_demo: user.is_demo,
     },
     env.JWT_SECRET,
     { expiresIn: env.JWT_EXPIRY }
@@ -33,5 +50,6 @@ const generateToken = (user) => {
 
 module.exports = {
   authenticate,
+  requireRole,
   generateToken,
 };
