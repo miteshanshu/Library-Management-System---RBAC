@@ -35,9 +35,23 @@ class NotFoundError extends AppError {
   }
 }
 
+const isDatabaseError = (err) =>
+  Boolean(
+    err &&
+      (err.code ||
+        err.severity ||
+        err.detail ||
+        err.table ||
+        err.schema ||
+        err.constraint)
+  );
+
 const globalErrorHandler = (err, req, res, _next) => {
   const statusCode = err.statusCode || 500;
-  const message = err.message || 'Internal Server Error';
+  const message =
+    statusCode >= 500 && isDatabaseError(err)
+      ? 'A database error occurred while processing the request'
+      : err.message || 'Internal Server Error';
   const errors = err.errors || null;
 
   console.error(`[${new Date().toISOString()}] Error:`, {
