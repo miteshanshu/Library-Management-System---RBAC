@@ -1,6 +1,6 @@
-# Library Management System - Backend API
+# CircuLib - Backend API
 
-Complete Node.js/Express REST API backend with Role-Based Access Control (RBAC) for the Library Management System.
+Complete Node.js/Express REST API backend for CircuLib, a role-based library circulation and operations platform.
 
 ## 🚀 Features
 

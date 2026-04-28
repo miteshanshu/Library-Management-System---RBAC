@@ -1,4 +1,4 @@
-# Library Management System
+# CircuLib - Library Circulation & Operations Platform
 
 Role-based library management application with a React frontend, an Express REST API, and a PostgreSQL schema under `library_app`. The current codebase supports admin, librarian, and student workflows for authentication, catalog management, circulation, reporting, and a set of optional modern features such as reviews, reservations, announcements, and wishlists.
 

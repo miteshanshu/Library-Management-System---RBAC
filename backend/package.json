@@ -1,7 +1,7 @@
 {
-  "name": "library-management-system-backend",
+  "name": "circulib-backend",
   "version": "1.0.0",
-  "description": "Complete RBAC backend for Library Management System",
+  "description": "Backend API for CircuLib - Library Circulation and Operations Platform",
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
