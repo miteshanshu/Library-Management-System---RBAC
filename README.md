@@ -14,7 +14,16 @@ A comprehensive **Role-Based Access Control (RBAC) library management system** w
 A production-ready library management platform supporting three user roles:
 - **Admin**: System management, analytics, user oversight
 - **Librarian**: Daily operations, inventory management, circulation
+- **Librarian**: Daily operations, inventory management, circulation
 - **Student**: Self-service borrowing, account management, book search
+
+## 📸 Screenshots
+
+| Login Screen | Student Dashboard |
+|:---:|:---:|
+| ![Login Screen](docs/images/login_screen.png) | ![Student Dashboard](docs/images/student_dashboard.png) |
+| **Admin Dashboard** | **Librarian Dashboard** |
+| ![Admin Dashboard](docs/images/admin_dashboard.png) | ![Librarian Dashboard](docs/images/librarian_dashboard.png) |
 
 ## 📁 Project Structure
 
@@ -57,6 +66,21 @@ library-management/
 │   │   └── inventory_and_member_reports.sql
 │   └── seeds/                     # Sample data for testing
 │       └── sample_data.sql
+│
+├── frontend/                       # React Frontend Application
+│   ├── src/
+│   │   ├── api/                   # Axios instances & API calls
+│   │   ├── components/            # Reusable UI components
+│   │   ├── pages/                 # Route components (Admin, Librarian, Student)
+│   │   ├── store/                 # Zustand state management
+│   │   ├── theme/                 # MUI theme configuration
+│   │   ├── routes/                # Role-based routing
+│   │   ├── App.jsx                # Main application component
+│   │   └── main.jsx               # Application entry point
+│   ├── public/                    # Static assets
+│   ├── index.html                 # HTML entry point
+│   ├── vite.config.js             # Vite configuration
+│   └── package.json               # Frontend dependencies
 │
 ├── .vscode/                        # VS Code settings
 ├── README.md                       # This file
@@ -117,7 +141,12 @@ cd backend
 npm install
 
 # Create environment file
+# Create environment file
 cp .env.example .env
+
+# Start Backend Server
+npm run dev
+# Server runs on http://localhost:5000
 ```
 
 Edit `backend/.env` with your configuration:
@@ -137,13 +166,18 @@ DB_PASSWORD=your_postgres_password
 DB_SCHEMA=library_app
 ```
 
-### 3️⃣ Run the Application
+### 3️⃣ Frontend Setup
 
 ```bash
-# Start development server with hot reload
-npm run dev
+# Navigate to frontend directory
+cd frontend
 
-# Server runs on http://localhost:5000
+# Install dependencies
+npm install
+
+# Start development server
+npm run dev
+# Application runs on http://localhost:5173
 ```
 
 ## 📖 API Documentation
@@ -247,6 +281,7 @@ npm run lint      # ESLint check
 ## 🛠️ Technology Stack
 
 - **Backend**: Node.js, Express.js
+- **Frontend**: React.js, Material UI (MUI), Vite, Zustand
 - **Database**: PostgreSQL 12+
 - **Authentication**: JWT (jsonwebtoken)
 - **Security**: bcrypt, Helmet
