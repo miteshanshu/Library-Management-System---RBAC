@@ -8,6 +8,7 @@ const librarianRoutes = require('./routes/librarian.routes');
 const studentRoutes = require('./routes/student.routes');
 const circulationRoutes = require('./routes/circulation.routes');
 const reportsRoutes = require('./routes/reports.routes');
+const featureRoutes = require('./routes/features.routes');
 const { globalErrorHandler } = require('./utils/error');
 const searchRoutes = require('./routes/search.routes');
 
@@ -26,6 +27,7 @@ app.use('/api/student', studentRoutes);
 app.use('/api/circulation', circulationRoutes);
 app.use('/api/reports', reportsRoutes);
 app.use('/api/search', searchRoutes);
+app.use('/api/features', featureRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() });
