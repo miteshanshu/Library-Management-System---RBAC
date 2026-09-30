@@ -196,11 +196,11 @@ const AppBar = ({ drawerWidth, onDrawerToggle }) => {
                 </IconButton>
 
                 {/* Page title area */}
-                <Box sx={{ flexGrow: 1 }}>
+                <Box sx={{ flexGrow: 1, minWidth: 0 }}>
                     <Typography variant="h6" fontWeight={600}>
                         Welcome, {user?.full_name?.split(' ')[0] || 'User'}
                     </Typography>
-                    <Typography variant="caption" color="text.secondary">
+                    <Typography variant="caption" color="text.secondary" noWrap sx={{ display: 'block' }}>
                         {new Date().toLocaleDateString('en-US', {
                             weekday: 'long',
                             year: 'numeric',
@@ -266,7 +266,7 @@ const AppBar = ({ drawerWidth, onDrawerToggle }) => {
                         <Typography variant="subtitle2" fontWeight={600}>
                             {user?.full_name}
                         </Typography>
-                        <Typography variant="caption" color="text.secondary">
+                        <Typography variant="caption" color="text.secondary" noWrap sx={{ display: 'block' }}>
                             {user?.email}
                         </Typography>
                         <Typography
