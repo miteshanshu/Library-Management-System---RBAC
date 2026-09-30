@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Outlet } from 'react-router-dom';
-import { Box, useMediaQuery, useTheme } from '@mui/material';
+import { Box, Toolbar, useMediaQuery, useTheme } from '@mui/material';
 import AppBar from './AppBar';
 import Sidebar from './Sidebar';
 import StatusSnackbar from '../common/StatusSnackbar';
@@ -39,12 +39,13 @@ const MainLayout = () => {
                     p: 3,
                     width: { md: `calc(100% - ${DRAWER_WIDTH}px)` },
                     ml: { md: `${DRAWER_WIDTH}px` },
-                    mt: '64px', // AppBar height
+                    
                     minHeight: 'calc(100vh - 64px)',
                     backgroundColor: 'background.default',
                 }}
             >
-                <Outlet />
+                <Toolbar />
+            <Outlet />
             </Box>
             {/* Status Snackbar - Global Notifications */}
             <StatusSnackbar />
