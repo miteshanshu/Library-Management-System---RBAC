@@ -22,14 +22,16 @@ const useAuthStore = create((set, get) => ({
     token: localStorage.getItem('token') || null,
     isAuthenticated: !!localStorage.getItem('token'),
     isLoading: false,
+    isWakingServer: false,
     isInitialized: false,
     error: null,
 
     // Actions
     login: async (email, password) => {
-        set({ isLoading: true, error: null });
+        set({ isLoading: true, isWakingServer: false, error: null });
+        const wakeTimer = setTimeout(() => set({ isWakingServer: true }), 5000);
         try {
-            const response = await authApi.login(email, password);
+            const response = await authApi.login(email, password, () => set({ isWakingServer: true }));
             const { token, user } = response.data || {};
 
             if (!token || !user) {
@@ -56,6 +58,9 @@ const useAuthStore = create((set, get) => ({
                 error: error.message || 'Login failed',
             });
             return { success: false, error: error.message };
+        } finally {
+            clearTimeout(wakeTimer);
+            set({ isWakingServer: false });
         }
     },
 
