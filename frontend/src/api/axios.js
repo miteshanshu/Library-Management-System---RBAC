@@ -1,9 +1,10 @@
 import axios from 'axios';
+import { shouldRetryRequest, retryDelay } from './retry';
 
 // Create axios instance with base configuration
 const BASE_URL =
     import.meta.env.VITE_API_URL ||
-    process.env.REACT_APP_API_URL ||
+    (typeof process !== 'undefined' && process.env.REACT_APP_API_URL) ||
     'https://library-management-system-rbac.onrender.com/api';
 
 const api = axios.create({
@@ -45,7 +46,15 @@ api.interceptors.response.use(
             data: normalizedData,
         };
     },
-    (error) => {
+    async (error) => {
+        const config = error.config;
+        if (shouldRetryRequest(error)) {
+            config.retryCount = (config.retryCount || 0) + 1;
+            config.onRetry?.(config.retryCount);
+            await new Promise(resolve => setTimeout(resolve, retryDelay(config.retryCount)));
+            return api.request(config);
+        }
+
         // Handle different error scenarios
         if (error.response) {
             const { status, data } = error.response;
