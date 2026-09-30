@@ -38,7 +38,7 @@ const loginSchema = z.object({
 const Login = () => {
     const theme = useTheme();
     const navigate = useNavigate();
-    const { login, isAuthenticated, isLoading, error, clearError, user } = useAuthStore();
+    const { login, isAuthenticated, isLoading, isWakingServer, error, clearError, user } = useAuthStore();
     const [showPassword, setShowPassword] = useState(false);
 
     const {
@@ -222,10 +222,14 @@ const Login = () => {
                                     fontSize: '1rem',
                                     fontWeight: 700,
                                     textTransform: 'none',
+                                    '&.Mui-disabled': { color: 'primary.contrastText' },
                                 }}
                             >
                                 {isLoading ? (
-                                    <CircularProgress size={24} color="inherit" />
+                                    <>
+                                        <CircularProgress size={20} color="inherit" sx={{ mr: 1 }} />
+                                        {isWakingServer ? 'Waking up the server...' : 'Signing in...'}
+                                    </>
                                 ) : (
                                     'Sign In'
                                 )}
