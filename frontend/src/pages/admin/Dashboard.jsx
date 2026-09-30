@@ -17,7 +17,6 @@ import {
     ContentCopy as CopyIcon,
     SwapHoriz as LoansIcon,
     AttachMoney as FeesIcon,
-    TrendingUp,
     MoreVert,
 } from '@mui/icons-material';
 import { reportsApi } from '../../api';
@@ -87,15 +86,7 @@ const StatCard = ({ title, value, icon: Icon, color, loading, index }) => {
                     )}
                 </Box>
 
-                <Box sx={{ mt: 2, display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                    <TrendingUp sx={{ color: theme.palette.success.main, fontSize: 16 }} />
-                    <Typography variant="caption" color="success.main" fontWeight={600}>
-                        +2.4%
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                        from last month
-                    </Typography>
-                </Box>
+
             </CardContent>
         </Card>
     );
