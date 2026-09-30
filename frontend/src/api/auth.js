@@ -2,8 +2,12 @@ import api from './axios';
 
 export const authApi = {
     // Login user
-    login: (email, password) => {
-        return api.post('/auth/login', { email, password });
+    login: (email, password, onRetry) => {
+        return api.post('/auth/login', { email, password }, {
+            timeout: 20000,
+            retryOnTransientError: true,
+            onRetry,
+        });
     },
 
     // Register new student
