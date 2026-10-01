@@ -11,8 +11,12 @@ const addReview = async (req, res, next) => {
     const { book_id, rating, comment } = req.body;
     const user_id = req.user.user_id;
 
-    if (!book_id || !rating) {
+    if (!book_id || rating === undefined || rating === null) {
       return next(new ValidationError('book_id and rating are required'));
+    }
+
+    if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
+      return next(new ValidationError('rating must be an integer between 1 and 5'));
     }
 
     if (!(await reviewsFeatureAvailable())) {
