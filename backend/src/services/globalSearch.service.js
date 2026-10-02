@@ -15,6 +15,8 @@ const searchAll = async (q, opts = {}) => {
   const { limit = 10, offset = 0, role = 'student' } = opts;
   const schema = env.DB_SCHEMA;
   const term = `%${q}%`;
+  // Authors are also matched on the full name, so squeeze repeated spaces first
+  const authorTerm = `%${String(q).trim().replace(/\s+/g, ' ')}%`;
 
   // Build queries. Keep them independent so we can run in parallel.
   // Note: we use explicit param arrays for each query to avoid index mistakes.
@@ -39,10 +41,11 @@ const searchAll = async (q, opts = {}) => {
            CONCAT(a.first_name, ' ', a.last_name) AS full_name
     FROM ${schema}.authors a
     WHERE a.first_name ILIKE $1 OR a.last_name ILIKE $1
+       OR CONCAT(a.first_name, ' ', a.last_name) ILIKE $1
     ORDER BY full_name ASC
     LIMIT $2 OFFSET $3
   `,
-  params: [term, limit, offset],
+  params: [authorTerm, limit, offset],
   key: 'authors',
 };
   queries.push(authorsQuery);
