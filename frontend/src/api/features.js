@@ -1,6 +1,9 @@
 import api from './axios';
 
 export const featuresApi = {
+    // Global search
+    search: (q, signal) => api.get('/search', { params: { q }, signal }),
+
     // Reviews
     addReview: (bookId, rating, comment) => api.post('/features/reviews', { book_id: bookId, rating, comment }),
     getBookReviews: (bookId) => api.get(`/features/reviews/${bookId}`),
