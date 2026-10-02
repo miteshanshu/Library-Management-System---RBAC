@@ -52,4 +52,12 @@ describe('global search authors and role boundaries', () => {
     expect(sql).not.toContain(term);
     expect(params).toEqual([`%${term}%`, 10, 0]);
   });
+
+  test('author query also matches the full name, with spaces tidied', async () => {
+    pool.query.mockResolvedValue({ rows: [] });
+    await searchAll('  Ursula   Le Guin ');
+    const [sql, params] = pool.query.mock.calls.find(([query]) => entityFor(query) === 'authors');
+    expect(sql).toContain('CONCAT(a.first_name, \' \', a.last_name) ILIKE $1');
+    expect(params).toEqual(['%Ursula Le Guin%', 10, 0]);
+  });
 });
