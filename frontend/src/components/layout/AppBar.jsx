@@ -28,6 +28,7 @@ import {
 } from '@mui/icons-material';
 import { useAuthStore, useThemeStore } from '../../store';
 import { studentApi, featuresApi } from '../../api';
+import GlobalSearch from './GlobalSearch';
 
 const AppBar = ({ drawerWidth, onDrawerToggle }) => {
     const navigate = useNavigate();
@@ -209,6 +210,8 @@ const AppBar = ({ drawerWidth, onDrawerToggle }) => {
                         })}
                     </Typography>
                 </Box>
+
+                <GlobalSearch />
 
                 {/* Action buttons */}
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
