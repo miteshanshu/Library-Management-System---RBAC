@@ -104,15 +104,18 @@ const GlobalSearch = () => {
             setLoading(false);
             return undefined;
         }
+        setResults(null);
+        setError('');
         const controller = new AbortController();
         const timer = window.setTimeout(async () => {
             setLoading(true);
             setError('');
             try {
                 const res = await featuresApi.search(term, controller.signal);
+                if (controller.signal.aborted) return;
                 setResults(res.data || {});
             } catch (err) {
-                if (err?.code === 'ERR_CANCELED') return;
+                if (controller.signal.aborted || err?.code === 'ERR_CANCELED') return;
                 setResults(null);
                 setError('Search is not available right now. Try again in a moment.');
             } finally {
