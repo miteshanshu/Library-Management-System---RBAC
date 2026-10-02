@@ -39,6 +39,10 @@ CREATE INDEX IF NOT EXISTS idx_authors_first_trgm
 CREATE INDEX IF NOT EXISTS idx_authors_last_trgm
   ON authors USING gin (last_name gin_trgm_ops);
 
+-- Full name search (first name + space + last name)
+CREATE INDEX IF NOT EXISTS idx_authors_fullname_trgm
+  ON authors USING gin ((first_name || ' ' || last_name) gin_trgm_ops);
+
 
 
 -- ---------------------------------------------------------
