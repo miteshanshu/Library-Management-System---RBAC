@@ -41,7 +41,7 @@ const searchAll = async (q, opts = {}) => {
            CONCAT(a.first_name, ' ', a.last_name) AS full_name
     FROM ${schema}.authors a
     WHERE a.first_name ILIKE $1 OR a.last_name ILIKE $1
-       OR CONCAT(a.first_name, ' ', a.last_name) ILIKE $1
+       OR (a.first_name || ' ' || a.last_name) ILIKE $1
     ORDER BY full_name ASC
     LIMIT $2 OFFSET $3
   `,
