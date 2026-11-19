@@ -9,7 +9,16 @@
 
 I built CircuLib to handle library catalog and borrowing workflows across three roles: admin, librarian, and student. It has a React frontend, an Express API, and a PostgreSQL database. The borrowing rules, loans, fees, and reports use database records and SQL routines.
 
-[Open the demo](https://library-management-system-rbac.vercel.app/)
+## Try the live demo
+
+[Open CircuLib](https://library-management-system-rbac.vercel.app/) and sign in with the demo account shown on the login page:
+
+- Email: `demoadmin@library.in`
+- Password: `Admin@123`
+
+The demo account signs in as an admin, and profile and password changes are blocked on it. The backend runs on a free plan and sleeps when idle, so the first login can take around 40 seconds while the server wakes up.
+
+The interface still shows its older LibraryMS name in a few places. The rename to CircuLib is in progress.
 
 ## What it does
 
