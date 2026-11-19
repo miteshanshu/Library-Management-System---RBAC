@@ -20,6 +20,17 @@ The demo account signs in as an admin, and profile and password changes are bloc
 
 The interface still shows its older LibraryMS name in a few places. The rename to CircuLib is in progress.
 
+
+### What it looks like
+
+Admin dashboard after signing in with the demo account:
+
+<img width="1280" height="720" alt="CircuLib admin dashboard" src="https://github.com/user-attachments/assets/aa356813-41ab-49d0-8734-6be84f7c9dd1" />
+
+Books view:
+
+<img width="1280" height="720" alt="CircuLib books view" src="https://github.com/user-attachments/assets/de7d0c3b-b342-463f-b107-a67369c85bd9" />
+
 ## What it does
 
 - **Admin:** manage books, physical copies, librarian accounts, and membership types; view library totals and reports.
